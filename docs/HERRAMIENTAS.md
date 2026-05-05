@@ -87,5 +87,5 @@ El backend debe tener **`STRUCTURED_LOGS=true`** (por defecto en `docker-compose
 
 ## Referencias cruzadas
 
-- Tabla de puertos y fragmentos LogQL: [README principal § Puertos y observabilidad](../README.md).
-- Recorrido de entrega con prueba en Grafana: [GUIA_ENTREGA.md § 5.1](GUIA_ENTREGA.md).
+- Tabla de puertos y fragmentos LogQL: [README principal Puertos y observabilidad](../README.md).
+- Recorrido de entrega con prueba en Grafana: [GUIA_ENTREGA.md](GUIA_ENTREGA.md).

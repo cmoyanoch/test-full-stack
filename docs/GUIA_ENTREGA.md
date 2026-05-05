@@ -114,7 +114,7 @@ Si el cambio lo generó **otra pestaña**, puede mostrarse un **toast** abajo a 
 
 ### Paso 3 — Logs del backend (consola)
 
-En los logs del contenedor **backend** deberían aparecer líneas JSON con contexto **Socket**: conexión, desconexión y emisión de eventos (`favorite:added`, etc.). Detalle en [README § Cómo probar el feature de tiempo real](../README.md#cómo-probar-el-feature-de-tiempo-real).
+En los logs del contenedor **backend** deberían aparecer líneas JSON con contexto **Socket**: conexión, desconexión y emisión de eventos (`favorite:added`, etc.). Detalle en [README Cómo probar el feature de tiempo real](../README.md#cómo-probar-el-feature-de-tiempo-real).
 
 ---
 
@@ -275,7 +275,7 @@ graph LR
 
 ## 9. Observabilidad (rol en la entrega)
 
-El enunciado pide **logging mínimo** en consola para sockets; este proyecto además envía logs **JSON** compatibles con **Loki** cuando `STRUCTURED_LOGS=true` (Docker). Grafana **3010** permite mostrar la misma evidencia de forma visual al evaluador (véase §5.1).
+El enunciado pide **logging mínimo** en consola para sockets; este proyecto además envía logs **JSON** compatibles con **Loki** cuando `STRUCTURED_LOGS=true` (Docker). Grafana **3010** permite mostrar la misma evidencia de forma visual al evaluador.
 
 ---
 
@@ -299,7 +299,7 @@ Matriz de trazabilidad frente a los requisitos habituales de una prueba técnica
 | Tiempo real con ≥2 eventos socket | `favorite:added`, `favorite:removed`, `favorite:updated` — [`presentation/realtime.gateway.ts`](../backend/src/presentation/realtime.gateway.ts) |
 | Docker unificado | [`docker-compose.yml`](../docker-compose.yml), `.env.example` |
 | README con instalación, puertos, tiempo real, endpoints | [`README.md`](../README.md) + esta guía |
-| Logging sockets (consola) | JSON con `context: Socket` cuando `STRUCTURED_LOGS=true`; opcional Grafana §5.1 |
+| Logging sockets (consola) | JSON con `context: Socket` cuando `STRUCTURED_LOGS=true`; opcional Grafana |
 
 **Entrega típica:** enlace al repositorio público + este documento y README como soporte.
 

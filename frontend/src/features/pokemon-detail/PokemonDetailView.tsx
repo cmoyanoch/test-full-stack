@@ -54,11 +54,11 @@ export function PokemonDetailView({
         {detailMatchesSelection && detail && (
           <>
             <Stack
-              direction={{ xs: 'column', sm: 'row' }}
+              direction="column"
               spacing={2}
               sx={{
                 mb: 2,
-                alignItems: { xs: 'flex-start', sm: 'center' },
+                alignItems: 'center',
                 flexWrap: 'wrap',
               }}
             >
