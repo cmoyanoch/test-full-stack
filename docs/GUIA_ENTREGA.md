@@ -8,9 +8,9 @@ Documento didáctico para **instalar, verificar, probar y entregar** el proyecto
 |---------|-----|
 | [README.md](../README.md) | Decisiones técnicas, troubleshooting DNS Docker, tablas de puertos y endpoints |
 | [docs/openapi.yaml](openapi.yaml) | Contrato HTTP OpenAPI 3 (referencia; la API sirve la copia `backend/openapi.yaml`) |
-| [observability/](../observability/) | Loki, Promtail y *provisioning* de Grafana |
-| [docs/HERRAMIENTAS.md](HERRAMIENTAS.md) | pgAdmin y Grafana/Loki: paso a paso con Docker |
-| [docker-compose.yml](../docker-compose.yml) | Stack único: por defecto `db`, `backend`, `frontend`; pgAdmin, Loki, Promtail y Grafana (perfil `full`) |
+| [observability/](../observability/) | Loki, Promtail, Prometheus, Tempo, OTel Collector y *provisioning* de Grafana (datasources + dashboards) |
+| [docs/HERRAMIENTAS.md](HERRAMIENTAS.md) | pgAdmin, Grafana, Loki, Prometheus y Tempo: paso a paso con Docker |
+| [docker-compose.yml](../docker-compose.yml) | Stack único: por defecto `db`, `backend`, `frontend`; pgAdmin, Loki, Promtail, Grafana, Prometheus, Tempo y OTel Collector (perfil `full`) |
 
 ---
 
@@ -18,7 +18,7 @@ Documento didáctico para **instalar, verificar, probar y entregar** el proyecto
 
 **Objetivo de negocio:** listar y ver detalle de Pokémon (datos desde **PokéAPI**), persistir **favoritos** en **PostgreSQL** y sincronizar cambios en **tiempo real** con **Socket.IO** entre pestañas o clientes.
 
-**Stack:** NestJS (hexagonal) + React (Vite) + Postgres + Socket.IO; opcionalmente **Grafana + Loki** para ver logs estructurados del backend.
+**Stack:** NestJS (hexagonal) + React (Vite) + Postgres + Socket.IO; opcionalmente **Grafana + Loki + Prometheus + Tempo** (los tres pilares de observabilidad) para logs estructurados, métricas y trazas correlacionadas.
 
 ---
 
@@ -60,7 +60,7 @@ cp .env.example .env
 docker compose up --build
 ```
 
-La primera vez puede tardar varios minutos (descarga de imágenes base, `npm ci`/build). Servicios que deben quedar **healthy**: `db` → `backend` (healthcheck sobre `GET /favorites`) → `frontend`. **pgAdmin**, **Loki**, **Promtail** y **Grafana** comparten el perfil `full`. Para incluirlos: `docker compose --profile full up --build`.
+La primera vez puede tardar varios minutos (descarga de imágenes base, `npm ci`/build). Servicios que deben quedar **healthy**: `db` → `backend` (healthcheck sobre `GET /health`) → `frontend`. **pgAdmin**, **Loki**, **Promtail**, **Grafana**, **Prometheus**, **Tempo** y **OTel Collector** comparten el perfil `full`. Para incluirlos: `docker compose --profile full up --build`.
 
 **Comprueba en el terminal:** mensajes de escucha del backend en el puerto 4000 y del frontend (nginx en el contenedor sirve el build estático en el puerto interno 80, mapeado a **3000** en el host).
 
@@ -74,6 +74,8 @@ La primera vez puede tardar varios minutos (descarga de imágenes base, `npm ci`
 | pgAdmin | [http://localhost:5050](http://localhost:5050) — solo si levantaste el perfil `full` |
 | Grafana | [http://localhost:3010](http://localhost:3010) (`admin` / `admin` por defecto, solo demo) — solo si levantaste el perfil `full` |
 | Loki (API) | `localhost:3100` — mismo criterio que Grafana |
+| Prometheus | [http://localhost:9090](http://localhost:9090) — solo perfil `full` |
+| Tempo (query/UI) | `localhost:3200` — solo perfil `full` |
 
 `[Captura: navegador en localhost:3000 con lista Pokémon]`
 
@@ -146,7 +148,11 @@ Tras reproducir la prueba de dos pestañas, puedes **demostrar** los mismos even
 
 - [`observability/loki-config.yaml`](../observability/loki-config.yaml) — Loki.
 - [`observability/promtail-config.yml`](../observability/promtail-config.yml) — Promtail lee logs de contenedores Docker.
-- [`observability/grafana/provisioning/`](../observability/grafana/provisioning/) — Datasource Loki en Grafana.
+- [`observability/prometheus.yml`](../observability/prometheus.yml) — Prometheus scrape de `/metrics` del backend.
+- [`observability/tempo-config.yaml`](../observability/tempo-config.yaml) — Tempo (storage local + OTLP receivers).
+- [`observability/otel-collector-config.yaml`](../observability/otel-collector-config.yaml) — OTel Collector (pass-through demo backend → Tempo).
+- [`observability/grafana/provisioning/datasources/`](../observability/grafana/provisioning/datasources/) — Datasources Loki, Prometheus y Tempo con correlación bidireccional.
+- [`observability/grafana/provisioning/dashboards/golden-signals.json`](../observability/grafana/provisioning/dashboards/golden-signals.json) — Dashboard "Golden Signals" provisionado.
 
 **Promtail** monta `/var/run/docker.sock` del host (ver [`docker-compose.yml`](../docker-compose.yml)). Si **no ves líneas** en Loki: comprueba que los contenedores estén en marcha, que el nombre del servicio backend sea reconocible por Promtail, y lo indicado en el [README — Observabilidad opcional](../README.md#observabilidad-opcional-perfil-full). Guía unificada (Grafana, Loki, pgAdmin y perfiles): [HERRAMIENTAS.md](HERRAMIENTAS.md).
 
@@ -156,7 +162,7 @@ Tras reproducir la prueba de dos pestañas, puedes **demostrar** los mismos even
 
 **Propósito:** validar de forma automática casos de uso y utilidades en el backend, un flujo HTTP mínimo (e2e) y hooks/UI en el frontend. El detalle de **qué cubre cada tipo**, rutas de archivos y el script opcional `test:all` está en el [README — Tests](../README.md#tests).
 
-**Contexto:** la **aplicación** (API, front, base de datos) se levanta con **Docker** (`docker compose up`). Grafana/Loki/pgAdmin son opcionales (`--profile full`). Los **tests automatizados** no se ejecutan dentro del contenedor `backend` de ese stack: la imagen de producción usa `npm ci --omit=dev` (sin Jest ni Vitest en la imagen).
+**Contexto:** la **aplicación** (API, front, base de datos) se levanta con **Docker** (`docker compose up`). pgAdmin, Loki, Promtail, Grafana, Prometheus, Tempo y OTel Collector son opcionales (`--profile full`). Los **tests automatizados** no se ejecutan dentro del contenedor `backend` de ese stack: la imagen de producción usa `npm ci --omit=dev` (sin Jest ni Vitest en la imagen).
 
 Ejecuta los tests en tu máquina, **desde el repo clonado**, con Node.js 20+ y `npm install` en cada carpeta la primera vez.
 
@@ -174,7 +180,11 @@ cd backend && npm test
 cd backend && npm run test:e2e
 ```
 
-**Requisitos:** `jest-e2e.config.cjs` y `test/app.e2e-spec.ts`. Los e2e cargan Nest con TypeORM: necesitas **PostgreSQL** en marcha (misma configuración que para `npm run start:dev`). Opcional: `npm run test:all` en `backend/` (unitarios + e2e) solo si Postgres está disponible.
+**Requisitos:** `jest-e2e.config.cjs`, `test/app.e2e-spec.ts` y un **Docker daemon** corriendo en el host. El `globalSetup` ([`test/e2e-global-setup.ts`](../backend/test/e2e-global-setup.ts)) levanta un Postgres efímero con **Testcontainers** y el `globalTeardown` ([`test/e2e-global-teardown.ts`](../backend/test/e2e-global-teardown.ts)) lo retira al final, así que **no necesitas Postgres instalado**.
+
+**Modo legacy** (sin contenedor, contra Postgres del host): `E2E_USE_TESTCONTAINERS=false npm run test:e2e`.
+
+Opcional: `npm run test:all` en `backend/` (unitarios + e2e). Detalle ampliado: [README — Backend e2e](../README.md#backend--e2e-jest--supertest--testcontainers).
 
 ### Frontend
 
@@ -282,7 +292,7 @@ El enunciado pide **logging mínimo** en consola para sockets; este proyecto ade
 ## 10. Problemas frecuentes
 
 - **DNS / Docker Hub:** [README — Docker build falla](../README.md#docker-build-falla-dns--registry-1dockerio).
-- **Puertos ocupados:** libera 3000, 4000, 5432, 3010 o 3100 según tu máquina.
+- **Puertos ocupados:** libera 3000, 4000, 5432 (mínimos) y, si usas el perfil `full`, también 3010, 3100, 9090, 3200 y 5050 según tu máquina.
 - **CORS:** en Docker, `CORS_ORIGINS` tiene un valor por defecto en [`docker-compose.yml`](../docker-compose.yml) (sobrescribible vía `.env` en la raíz; véase [.env.example](../.env.example)).
 
 ---

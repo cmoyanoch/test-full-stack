@@ -30,7 +30,7 @@ Esto plantea dos tensiones a resolver:
 | UI kit | **MUI (Emotion)** | 9.x |
 | Tests backend | **Jest** (unit) + **Jest + Supertest** (e2e) | — |
 | Tests frontend | **Vitest** + Testing Library | — |
-| Observabilidad opcional | **Loki + Promtail + Grafana** (perfil `full`) | — |
+| Observabilidad opcional | **Loki + Promtail + Grafana** (perfil `full`) — *ampliado en [ADR-0002](0002-observabilidad-tres-pilares.md) con Prometheus, Tempo y OpenTelemetry* | — |
 | Documentación HTTP | **Swagger UI** servida por backend + `openapi.yaml` versionado | — |
 | Multi-tenant ligero | Cabecera `X-Client-Id` + columna `clientId` en `favorites` | — |
 

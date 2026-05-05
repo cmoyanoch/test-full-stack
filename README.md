@@ -77,6 +77,9 @@ flowchart LR
       direction LR
       promtail["promtail"]
       loki["loki<br/>:3100"]
+      prometheus["prometheus<br/>:9090"]
+      otelcol["otel-collector<br/>:4318"]
+      tempo["tempo<br/>:3200"]
       grafana["grafana<br/>:3010"]
       pgadmin["pgadmin<br/>:5050"]
     end
@@ -93,7 +96,12 @@ flowchart LR
 
   promtail -->|"docker logs"| beCtr
   promtail -->|"push logs"| loki
-  grafana -->|"query LogQL"| loki
+  prometheus -->|"scrape /metrics"| beCtr
+  beCtr -->|"OTLP HTTP"| otelcol
+  otelcol -->|"OTLP"| tempo
+  grafana -->|"LogQL"| loki
+  grafana -->|"PromQL"| prometheus
+  grafana -->|"TraceQL"| tempo
   pgadmin -->|"admin TCP"| dbCtr
 ```
 
@@ -309,18 +317,17 @@ Esta prueba se entregó como monolito modular con arquitectura hexagonal. Sirve 
 
 - No hay autenticación real: el enunciado lo permite y el dominio queda preparado para JWT sin reescritura.
 - No hay broker de eventos: con un solo proceso, Socket.IO directo basta y deja claro el caso. Migrar a Outbox+broker es cambio de adaptador, no de dominio.
-- No hay tracing distribuido: añadir OTel es ~30 líneas adicionales pero se descartó para mantener el setup demo simple.
 - No hay despliegue real ni Helm chart: queda fuera del alcance "una semana".
 
 ---
 
 ## Estructura del monorepo
 
-- `backend/` — NestJS hexagonal (`domain`, `application`, `infrastructure`, `presentation`; módulos `favorites`, `pokemon`, TypeORM).
+- `backend/` — NestJS hexagonal (`domain`, `application`, `infrastructure`, `presentation`; módulos `favorites`, `pokemon`, TypeORM, observabilidad en `infrastructure/observability/`).
 - `frontend/` — React + Vite.
-- `docker-compose.yml` — stack por defecto `db`, `backend`, `frontend`; perfil **`full`** para pgAdmin + observabilidad; healthcheck del backend antes del frontend.
-- `observability/` — Loki, Promtail, provisioning Grafana.
-- `docs/` — [GUIA_ENTREGA.md](docs/GUIA_ENTREGA.md), [HERRAMIENTAS.md](docs/HERRAMIENTAS.md) y [openapi.yaml](docs/openapi.yaml) (referencia; la API sirve [`backend/openapi.yaml`](backend/openapi.yaml)).
+- `docker-compose.yml` — stack por defecto `db`, `backend`, `frontend`; perfil **`full`** para pgAdmin + Loki/Promtail/Grafana/Prometheus/Tempo/OTel Collector; healthcheck del backend antes del frontend.
+- `observability/` — Loki, Promtail, Prometheus, Tempo, OTel Collector y provisioning Grafana (datasources + dashboards).
+- `docs/` — [GUIA_ENTREGA.md](docs/GUIA_ENTREGA.md), [HERRAMIENTAS.md](docs/HERRAMIENTAS.md), [openapi.yaml](docs/openapi.yaml) (referencia; la API sirve [`backend/openapi.yaml`](backend/openapi.yaml)) y [adr/](docs/adr/) (ADRs versionados).
 
 ---
 
