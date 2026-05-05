@@ -9,7 +9,7 @@ SPA **React** + API **NestJS** que consume **PokéAPI**, persiste **favoritos** 
 Orden sugerido para validar el entregable:
 
 1. **Guía y checklist:** criterios típicos de una prueba full stack (PokéAPI, favoritos, tiempo real, Docker) en [docs/GUIA_ENTREGA.md](docs/GUIA_ENTREGA.md#11-checklist-de-entrega-vs-enunciado); decisiones técnicas y alcance en este README.
-2. **Arranque:** desde la raíz del repo, `cp .env.example .env` y `docker compose up --build` (detalle en [Instalación y ejecución con Docker](#instalación-y-ejecución-con-docker-recomendado)).
+2. **Arranque:** desde la raíz del repo, **`docker compose up`** (defaults listos para localhost; `cp .env.example .env` y `--build` solo si quieres personalizar variables o reconstruir, detalle en [Instalación y ejecución con Docker](#instalación-y-ejecución-con-docker-recomendado)).
 3. **URLs:**
    - Aplicación: [http://localhost:3000](http://localhost:3000)
    - API y Swagger: [http://localhost:4000/api-docs](http://localhost:4000/api-docs)
@@ -47,14 +47,26 @@ Recorrido ampliado (Docker, Grafana/Loki, `curl`, diagramas): [docs/GUIA_ENTREGA
 
 ## Instalación y ejecución con Docker (recomendado)
 
-Desde la raíz del repositorio:
+### Arranque mínimo (solo levantar el proyecto)
+
+Desde la raíz del repositorio, sin tocar nada más:
 
 ```bash
-cp .env.example .env
+docker compose up
+```
+
+El [`docker-compose.yml`](docker-compose.yml) trae **defaults listos para localhost** (puertos, credenciales de Postgres, `CORS_ORIGINS`, `VITE_API_URL`, etc.), por lo que **no hace falta crear `.env`**. El primer arranque construye las imágenes y levanta por defecto **`db`**, **`backend`** y **`frontend`**.
+
+### Opcional — personalizar variables o forzar rebuild
+
+Solo si quieres sobrescribir algún default (puertos, credenciales, orígenes CORS) o reconstruir las imágenes tras cambios en el código:
+
+```bash
+cp .env.example .env   # ajustar variables si quieres sobrescribir defaults
 docker compose up --build
 ```
 
-El primer arranque construye las imágenes y levanta por defecto **`db`**, **`backend`** y **`frontend`** (véase [`docker-compose.yml`](docker-compose.yml)). **pgAdmin**, **Loki**, **Promtail** y **Grafana** son opcionales, perfil **`full`**: `docker compose --profile full up --build`.
+**pgAdmin**, **Loki**, **Promtail** y **Grafana** son opcionales, perfil **`full`**: `docker compose --profile full up` (añade `--build` si lo necesitas).
 
 Cuando los servicios estén listos:
 
