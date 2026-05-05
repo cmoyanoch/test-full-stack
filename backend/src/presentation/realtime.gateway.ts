@@ -13,6 +13,7 @@ import {
   FavoriteSocketPayload,
   IRealtimeNotifierPort,
 } from '../application/ports/realtime-notifier.port';
+import { MetricsService } from '../infrastructure/observability/metrics.service';
 import { clientRoomName, resolveClientId } from './client-id';
 
 @WebSocketGateway({
@@ -25,6 +26,8 @@ export class RealtimeGateway
     IRealtimeNotifierPort
 {
   @WebSocketServer() server!: Server;
+
+  constructor(private readonly metrics: MetricsService) {}
 
   handleConnection(client: Socket) {
     const raw =
@@ -52,6 +55,7 @@ export class RealtimeGateway
       favoriteId: payload.favoriteId,
       pokemonId: payload.pokemonId,
     });
+    this.metrics.recordSocketEvent('favorite:added');
     this.server
       .to(clientRoomName(payload.clientId))
       .emit('favorite:added', payload);
@@ -69,6 +73,7 @@ export class RealtimeGateway
       favoriteId: payload.favoriteId,
       pokemonId: payload.pokemonId,
     });
+    this.metrics.recordSocketEvent('favorite:removed');
     this.server
       .to(clientRoomName(payload.clientId))
       .emit('favorite:removed', payload);
@@ -81,6 +86,7 @@ export class RealtimeGateway
       favoriteId: payload.favoriteId,
       pokemonId: payload.pokemonId,
     });
+    this.metrics.recordSocketEvent('favorite:updated');
     this.server
       .to(clientRoomName(payload.clientId))
       .emit('favorite:updated', payload);

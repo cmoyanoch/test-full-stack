@@ -37,4 +37,30 @@ describe('App (e2e)', () => {
         expect(Array.isArray(res.body)).toBe(true);
       });
   });
+
+  it('GET /health responde 200 con status ok cuando la BD responde', () => {
+    return request(app.getHttpServer())
+      .get('/health')
+      .expect(200)
+      .expect((res) => {
+        expect(res.body).toMatchObject({
+          status: 'ok',
+          db: 'up',
+        });
+        expect(typeof res.body.uptimeSeconds).toBe('number');
+        expect(typeof res.body.timestamp).toBe('string');
+      });
+  });
+
+  it('GET /metrics expone métricas en formato Prometheus', () => {
+    return request(app.getHttpServer())
+      .get('/metrics')
+      .expect(200)
+      .expect('Content-Type', /text\/plain/)
+      .expect((res) => {
+        expect(res.text).toContain('http_requests_total');
+        expect(res.text).toContain('http_request_duration_seconds');
+        expect(res.text).toContain('socket_events_emitted_total');
+      });
+  });
 });

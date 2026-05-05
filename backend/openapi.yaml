@@ -10,6 +10,50 @@ servers:
   - url: http://localhost:4000
     description: Desarrollo local / Docker
 paths:
+  /health:
+    get:
+      summary: Probe de salud del proceso y conexión a BD
+      description: |
+        Devuelve siempre HTTP 200 con un payload que indica si el datasource responde.
+        Usado por el healthcheck del contenedor `backend` en `docker-compose.yml` y, en producción, por probes de readiness/liveness.
+      responses:
+        '200':
+          description: Estado del servicio
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - uptimeSeconds
+                  - db
+                  - timestamp
+                properties:
+                  status:
+                    type: string
+                    enum: [ok, degraded]
+                  uptimeSeconds:
+                    type: integer
+                    minimum: 0
+                  db:
+                    type: string
+                    enum: [up, down]
+                  timestamp:
+                    type: string
+                    format: date-time
+  /metrics:
+    get:
+      summary: Métricas Prometheus (texto plano)
+      description: |
+        Métricas en formato text/plain (versión 0.0.4) compatibles con Prometheus / Grafana Agent.
+        Incluye métricas por defecto del proceso Node, contador y latencia de requests HTTP, y eventos Socket.IO emitidos.
+      responses:
+        '200':
+          description: Exposición de métricas
+          content:
+            text/plain:
+              schema:
+                type: string
   /pokemon:
     get:
       summary: Lista paginada (proxy PokéAPI)

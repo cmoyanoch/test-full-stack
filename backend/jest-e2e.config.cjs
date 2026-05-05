@@ -15,6 +15,9 @@ module.exports = {
   moduleNameMapper: {
     '^@app/(.*)$': '<rootDir>/src/$1',
   },
+  globalSetup: '<rootDir>/test/e2e-global-setup.ts',
+  globalTeardown: '<rootDir>/test/e2e-global-teardown.ts',
+  testTimeout: 60_000,
   maxWorkers: 1,
   forceExit: true,
 };

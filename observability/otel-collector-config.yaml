@@ -1,0 +1,37 @@
+# OpenTelemetry Collector (perfil full).
+# Recibe trazas OTLP desde el backend y las re-exporta a Tempo.
+# En este demo el Collector es pass-through; en producción haría batching, sampling
+# y multi-export (Tempo + Loki + APM SaaS) sin tocar el backend.
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+processors:
+  batch:
+    send_batch_size: 512
+    timeout: 2s
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 256
+    spike_limit_mib: 64
+
+exporters:
+  otlphttp/tempo:
+    endpoint: http://tempo:4318
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlphttp/tempo]
+  telemetry:
+    logs:
+      level: info

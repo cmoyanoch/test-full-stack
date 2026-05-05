@@ -10,6 +10,7 @@ import {
   Post,
   UseFilters,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { Favorite } from '../domain/favorite.entity';
 import { AddFavoriteUseCase } from '../application/use-cases/add-favorite.use-case';
 import { ListFavoritesUseCase } from '../application/use-cases/list-favorites.use-case';
@@ -49,6 +50,7 @@ export class FavoritesController {
   }
 
   @Post()
+  @Throttle({ default: { ttl: 60_000, limit: 20 } })
   async create(
     @Headers('x-client-id') clientIdHeader: string | string[] | undefined,
     @Body() dto: CreateFavoriteDto,
@@ -65,6 +67,7 @@ export class FavoritesController {
   }
 
   @Delete(':id')
+  @Throttle({ default: { ttl: 60_000, limit: 20 } })
   async remove(
     @Headers('x-client-id') clientIdHeader: string | string[] | undefined,
     @Param('id', ParseUUIDPipe) id: string,
@@ -75,6 +78,7 @@ export class FavoritesController {
   }
 
   @Patch(':id')
+  @Throttle({ default: { ttl: 60_000, limit: 20 } })
   async patch(
     @Headers('x-client-id') clientIdHeader: string | string[] | undefined,
     @Param('id', ParseUUIDPipe) id: string,

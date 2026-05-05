@@ -1,3 +1,8 @@
+// IMPORTANT: tracing.ts MUST be the FIRST import. Las auto-instrumentaciones
+// de OpenTelemetry parchean require()/import hooks; cualquier módulo cargado
+// antes (axios, pg, express) quedaría sin instrumentar.
+import './infrastructure/observability/tracing';
+
 import 'dotenv/config';
 
 import { ValidationPipe } from '@nestjs/common';

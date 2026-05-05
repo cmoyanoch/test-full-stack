@@ -1,0 +1,22 @@
+# Configuración de Prometheus (perfil full).
+# Scrapea el endpoint /metrics expuesto por el backend NestJS (prom-client).
+# Ver backend/src/infrastructure/observability/metrics.service.ts.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: backend
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - backend:4000
+        labels:
+          service: pokemon-favorites-backend
+          env: demo
+
+  - job_name: prometheus
+    static_configs:
+      - targets:
+          - localhost:9090

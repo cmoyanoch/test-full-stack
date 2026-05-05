@@ -33,11 +33,18 @@ services:
       TYPEORM_SYNC: ${TYPEORM_SYNC:-true}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
       POKEAPI_BASE_URL: ${POKEAPI_BASE_URL:-https://pokeapi.co/api/v2}
+      THROTTLE_TTL: ${THROTTLE_TTL:-60000}
+      THROTTLE_LIMIT: ${THROTTLE_LIMIT:-60}
+      OTEL_ENABLED: ${OTEL_ENABLED:-true}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4318}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-pokemon-favorites-backend}
+      OTEL_TRACES_SAMPLER: ${OTEL_TRACES_SAMPLER:-always_on}
+      OTEL_RESOURCE_ATTRIBUTES: ${OTEL_RESOURCE_ATTRIBUTES:-deployment.environment=demo}
     healthcheck:
       test:
         [
           'CMD-SHELL',
-          "node -e 'require(\"http\").get(\"http://127.0.0.1:4000/favorites\",res=>process.exit(res.statusCode===200?0:1)).on(\"error\",()=>process.exit(1))'",
+          "node -e 'require(\"http\").get(\"http://127.0.0.1:4000/health\",res=>process.exit(res.statusCode===200?0:1)).on(\"error\",()=>process.exit(1))'",
         ]
       interval: 5s
       timeout: 5s
@@ -96,6 +103,46 @@ services:
       - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
     depends_on:
       - loki
+      - prometheus
+      - tempo
+
+  prometheus:
+    profiles:
+      - full
+    image: prom/prometheus:v2.55.1
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=24h
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prom-data:/prometheus
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  tempo:
+    profiles:
+      - full
+    image: grafana/tempo:2.6.1
+    command: -config.file=/etc/tempo/tempo.yaml
+    ports:
+      - "${TEMPO_PORT:-3200}:3200"
+    volumes:
+      - ./observability/tempo-config.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo-data:/var/tempo
+
+  otel-collector:
+    profiles:
+      - full
+    image: otel/opentelemetry-collector-contrib:0.117.0
+    command: --config=/etc/otelcol-contrib/config.yaml
+    volumes:
+      - ./observability/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    depends_on:
+      - tempo
 
   pgadmin:
     profiles:
@@ -116,3 +163,5 @@ volumes:
   pgdata:
   pgadmin-data:
   loki-data:
+  prom-data:
+  tempo-data:
