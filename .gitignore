@@ -1,0 +1,50 @@
+# Dependencias
+node_modules/
+
+# Artefactos de build
+dist/
+build/
+*.tsbuildinfo
+
+# Variables de entorno (secretos; usar .env.example como plantilla)
+.env
+.env.local
+.env.*.local
+frontend/.env
+frontend/.env.local
+backend/.env
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Tests / cobertura
+coverage/
+
+# SO / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Cachés
+.cache/
+.eslintcache
+
+# Entorno de agente / IDE (no forman parte del entregable)
+.agents/
+.cursor/
+AGENTS.md
+skills-lock.json
+
+# Documentación interna o de postulación (no incluida en el repo público)
+docs/prueba_tecnica_labs.md
+docs/requisitos_prueba_tecnica_labs.md
+docs/postulacion.md
+docs/README.md

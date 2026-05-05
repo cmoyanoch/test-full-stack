@@ -1,0 +1,15 @@
+# Formato: Conventional Commits (primera línea ≤ ~72 caracteres, imperativo)
+# <tipo>[alcance]: <descripción breve>
+#
+# Tipos: feat | fix | docs | chore | refactor | test | perf
+# Alcance (opcional): backend | frontend | docker | api | realtime
+#
+# Cuerpo opcional (separar con línea en blanco tras el título):
+# - Contexto o motivación
+# - Qué cambia respecto al comportamiento anterior
+#
+# Ejemplos:
+# feat(backend): persistir favoritos en PostgreSQL con TypeORM
+# chore(docker): alinear servicios de compose con puertos documentados
+# docs: documentar prueba del tiempo real en README
+#
