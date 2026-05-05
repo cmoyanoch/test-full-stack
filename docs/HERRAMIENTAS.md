@@ -1,13 +1,13 @@
-# Herramientas opcionales: pgAdmin y Grafana (Docker)
+# Herramientas opcionales: pgAdmin, Grafana, Prometheus, Loki y Tempo (Docker)
 
-Guía consolidada para **pgAdmin** y el stack **Grafana + Loki + Promtail** definidos en [`docker-compose.yml`](../docker-compose.yml). No son obligatorios para ejecutar la aplicación (listado Pokémon, favoritos, Socket.IO).
+Guía consolidada para **pgAdmin** y el stack de observabilidad **Grafana + Prometheus + Loki + Promtail + Tempo + OTel Collector** definidos en [`docker-compose.yml`](../docker-compose.yml). No son obligatorios para ejecutar la aplicación (listado Pokémon, favoritos, Socket.IO).
 
 ## Resumen de perfiles
 
 | Perfil | Servicios | Puerto en el host |
 |--------|-----------|-------------------|
 | *(ninguno)* | `db`, `backend`, `frontend` | 3000, 4000, 5432 |
-| `full` | + `pgadmin`, `loki`, `promtail`, `grafana` | 5050, 3100, 3010 |
+| `full` | + `pgadmin`, `loki`, `promtail`, `grafana`, `prometheus`, `tempo`, `otel-collector` | 5050, 3100, 3010, 9090, 3200 |
 
 Ejemplos:
 
@@ -50,7 +50,7 @@ Si conectas pgAdmin **instalado en tu máquina** (fuera de Docker) al Postgres q
 
 ---
 
-## Grafana y Loki (perfil `full`)
+## Grafana, Prometheus, Loki y Tempo (perfil `full`)
 
 ### Qué se configura en Docker
 
@@ -58,6 +58,10 @@ Si conectas pgAdmin **instalado en tu máquina** (fuera de Docker) al Postgres q
 - **Datasource Loki:** provisionado al arrancar desde [`observability/grafana/provisioning/datasources/loki.yml`](../observability/grafana/provisioning/datasources/loki.yml) (URL interna `http://loki:3100`; no es necesario crear el datasource a mano).
 - **Loki:** configuración en [`observability/loki-config.yaml`](../observability/loki-config.yaml), datos en volumen `loki-data`.
 - **Promtail:** lee logs de contenedores Docker vía socket del host; en [`observability/promtail-config.yml`](../observability/promtail-config.yml) solo se conservan streams cuyo nombre de contenedor coincide con `.*backend.*`.
+- **Datasource Prometheus:** provisionado desde [`observability/grafana/provisioning/datasources/prometheus.yml`](../observability/grafana/provisioning/datasources/prometheus.yml) con URL interna `http://prometheus:9090` y marcado como *default* (`isDefault: true`); no se edita desde la UI (`editable: false`).
+- **Prometheus:** configuración en [`observability/prometheus.yml`](../observability/prometheus.yml). Scrapea cada 15 s el endpoint `/metrics` del backend (target `backend:4000`, etiquetas `service=pokemon-favorites-backend`, `env=demo`). Datos en volumen `prom-data` con retención 24 h.
+- **Dashboard "Golden Signals":** provisionado desde [`observability/grafana/provisioning/dashboards/golden-signals.json`](../observability/grafana/provisioning/dashboards/golden-signals.json) (latencia p50/p95/p99 por ruta, tráfico RPS, errores 4xx/5xx, saturación RSS + event loop lag).
+- **Datasource Tempo:** provisionado desde [`observability/grafana/provisioning/datasources/tempo.yml`](../observability/grafana/provisioning/datasources/tempo.yml). Habilita correlación traza→logs (`tracesToLogsV2` filtrando por `traceId` en Loki) y *service map* contra Prometheus.
 
 El backend debe tener **`STRUCTURED_LOGS=true`** (por defecto en `docker-compose` para el servicio `backend`) para líneas JSON útiles en Explore.
 
@@ -77,11 +81,34 @@ El backend debe tener **`STRUCTURED_LOGS=true`** (por defecto en `docker-compose
 {container=~".*backend.*"} | json | statusCode >= 400
 ```
 
-### Si no ves líneas en Loki
+6. Para métricas, ve a **Dashboards → Pokemon Favorites - Golden Signals** (provisionado automáticamente). Para trazas, **Explore → Tempo** (búsqueda libre o por `traceId` proveniente de un log Loki).
+
+### Verificación rápida (en orden)
+
+1. `curl http://localhost:4000/metrics` debe devolver texto tipo `# HELP http_requests_total ...`. Si falla, el backend no está arriba o no expone `/metrics`.
+2. [http://localhost:9090/targets](http://localhost:9090/targets): el job `backend` debe aparecer en estado **UP** (verde). Si está **DOWN**, la causa más común es un error de DNS (debe ser `backend:4000`, **no** `localhost:4000`) o que el backend aún no pasó el healthcheck definido en [`docker-compose.yml`](../docker-compose.yml).
+3. En Grafana → **Connections → Data sources** deben aparecer **Prometheus** (marcada *default*), **Loki** y **Tempo** ya configuradas, sin necesidad de crearlas a mano.
+4. Dashboards → **Pokemon Favorites - Golden Signals** debería mostrar series tras ~30 s. Si está vacío, dispara tráfico al backend (por ejemplo `curl http://localhost:4000/pokemon` o usa la UI sobre `/favorites`) y espera a que Prometheus complete un par de scrapes.
+
+### Troubleshooting
+
+**Loki sin líneas:**
 
 - Confirma que el contenedor **backend** está en ejecución y que genera logs.
 - Promtail requiere acceso a `/var/run/docker.sock` (ya montado en compose).
 - El nombre del contenedor del backend debe ser reconocible por la expresión `.*backend.*` (convención habitual de Docker Compose).
+
+**Prometheus target DOWN:**
+
+- Si en `/targets` aparece `connection refused` o `no such host`, revisa que [`observability/prometheus.yml`](../observability/prometheus.yml) apunte a `backend:4000` (DNS de la red Compose), no a `localhost`.
+- El servicio `prometheus` declara `depends_on: backend (service_healthy)`; si el backend tarda en responder al healthcheck, Prometheus mostrará el target DOWN durante los primeros segundos.
+- Tras editar `observability/prometheus.yml` necesitas reiniciar el servicio: `docker compose restart prometheus` (el archivo se monta `:ro` y solo se relee al arrancar, salvo que actives `--web.enable-lifecycle`).
+
+**Tempo sin trazas:**
+
+- Verifica que el backend tenga la auto-instrumentación OTel activa (ver [`backend/src/infrastructure/observability/tracing.ts`](../backend/src/infrastructure/observability/tracing.ts)) y que la variable `OTEL_EXPORTER_OTLP_ENDPOINT` apunte al collector (`http://otel-collector:4318`).
+- El flujo es backend → `otel-collector` → `tempo`. Si el collector no arranca, no hay trazas; revísalo con `docker compose logs otel-collector`.
+- En Grafana → Explore → Tempo, prueba primero "Search" sin filtros para descartar problema de query antes que de pipeline.
 
 ---
 
@@ -89,3 +116,4 @@ El backend debe tener **`STRUCTURED_LOGS=true`** (por defecto en `docker-compose
 
 - Tabla de puertos y fragmentos LogQL: [README principal Puertos y observabilidad](../README.md).
 - Recorrido de entrega con prueba en Grafana: [GUIA_ENTREGA.md](GUIA_ENTREGA.md).
+- Decisión arquitectónica de los tres pilares (logs, métricas, trazas): [ADR-0002 Observabilidad](adr/0002-observabilidad-tres-pilares.md).
