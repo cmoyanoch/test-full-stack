@@ -1,0 +1,18 @@
+/* Imagen sprite en detalle (resto vía MUI) */
+
+.poke-thumb {
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
+}
+
+.poke-thumb--detail {
+  position: relative;
+  z-index: 1;
+  display: block;
+}
+
+.poke-thumb--hidden {
+  display: none;
+}
+
