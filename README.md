@@ -10,7 +10,10 @@ Orden sugerido para validar el entregable:
 
 1. **Guía y checklist:** criterios típicos de una prueba full stack (PokéAPI, favoritos, tiempo real, Docker) en [docs/GUIA_ENTREGA.md](docs/GUIA_ENTREGA.md#11-checklist-de-entrega-vs-enunciado); decisiones técnicas y alcance en este README.
 2. **Arranque:** desde la raíz del repo, `cp .env.example .env` y `docker compose up --build` (detalle en [Instalación y ejecución con Docker](#instalación-y-ejecución-con-docker-recomendado)).
-3. **URLs:** aplicación [http://localhost:3000](http://localhost:3000); API y Swagger [http://localhost:4000/api-docs](http://localhost:4000/api-docs); YAML [http://localhost:4000/openapi.yaml](http://localhost:4000/openapi.yaml).
+3. **URLs:**
+   - Aplicación: [http://localhost:3000](http://localhost:3000)
+   - API y Swagger: [http://localhost:4000/api-docs](http://localhost:4000/api-docs)
+   - YAML: [http://localhost:4000/openapi.yaml](http://localhost:4000/openapi.yaml)
 4. **Tiempo real:** procedimiento en [Cómo probar el feature de tiempo real](#cómo-probar-el-feature-de-tiempo-real) (dos pestañas, misma `X-Client-Id`).
 5. **Tests (opcional):** [Tests](#tests) en máquina host con Node 20+; la imagen Docker de producción no incluye runners de test.
 
