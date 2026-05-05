@@ -1,0 +1,187 @@
+# Contrato HTTP de referencia. Copia desplegable en backend/openapi.yaml (sirve Swagger UI en GET /api-docs).
+openapi: 3.0.3
+info:
+  title: Pokémon favoritos API
+  version: 1.0.0
+  description: |
+    API REST del backend (NestJS). Sin prefijo global; Socket.IO en la misma base URL.
+    Los favoritos se aislan por cabecera **X-Client-Id** (opaco). Si falta, el servidor usa `default`.
+servers:
+  - url: http://localhost:4000
+    description: Desarrollo local / Docker
+paths:
+  /pokemon:
+    get:
+      summary: Lista paginada (proxy PokéAPI)
+      parameters:
+        - $ref: '#/components/parameters/XClientIdOptional'
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Items y metadatos de paginación
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        url:
+                          type: string
+                  total:
+                    type: integer
+                  nextOffset:
+                    type: integer
+                    nullable: true
+  /pokemon/{id}:
+    get:
+      summary: Detalle normalizado
+      parameters:
+        - $ref: '#/components/parameters/XClientIdOptional'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Detalle
+        '404':
+          description: Pokémon no encontrado
+        '502':
+          description: PokéAPI no disponible
+  /favorites:
+    get:
+      summary: Lista favoritos del cliente
+      parameters:
+        - $ref: '#/components/parameters/XClientIdOptional'
+      responses:
+        '200':
+          description: Lista
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Favorite'
+    post:
+      summary: Crear favorito
+      parameters:
+        - $ref: '#/components/parameters/XClientIdOptional'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - pokemonId
+                - pokemonName
+                - imageUrl
+              properties:
+                pokemonId:
+                  type: integer
+                pokemonName:
+                  type: string
+                  maxLength: 100
+                imageUrl:
+                  type: string
+                  maxLength: 2048
+                note:
+                  type: string
+                  nullable: true
+      responses:
+        '201':
+          description: Creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Favorite'
+        '409':
+          description: Pokémon ya en favoritos para ese cliente
+  /favorites/{id}:
+    parameters:
+      - $ref: '#/components/parameters/XClientIdOptional'
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    delete:
+      summary: Eliminar favorito
+      responses:
+        '200':
+          description: Ok
+        '404':
+          description: No encontrado
+    patch:
+      summary: Actualizar nota
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: string
+                  nullable: true
+      responses:
+        '200':
+          description: Actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Favorite'
+        '404':
+          description: No encontrado
+components:
+  parameters:
+    XClientIdOptional:
+      name: X-Client-Id
+      in: header
+      required: false
+      schema:
+        type: string
+        maxLength: 64
+      description: |
+        Identificador opaco por navegador (p. ej. UUID en localStorage).
+        Vacío o ausente → el servidor trata el cliente como `default`.
+  schemas:
+    Favorite:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        clientId:
+          type: string
+        pokemonId:
+          type: integer
+        pokemonName:
+          type: string
+        imageUrl:
+          type: string
+        note:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
