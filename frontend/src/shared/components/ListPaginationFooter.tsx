@@ -16,7 +16,7 @@ export type ListPaginationFooterProps = {
 
 function paginationAriaLabel(
   type: string,
-  pageNumber: number,
+  pageNumber: number | null,
   selected: boolean,
 ): string {
   if (type === 'page') {
